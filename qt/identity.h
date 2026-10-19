@@ -149,3 +149,5 @@ struct Identity
     bool isNull() const;
     QString toString() const;
 };
+
+Q_DECLARE_METATYPE(Identity)
