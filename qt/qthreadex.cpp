@@ -23,7 +23,8 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *****************************************************************************/
 
-#include "qthreadex.h"
+#include "qt/qthreadex.h"
+
 #include "defmac.h"
 #include "break_point.h"
 #include <QElapsedTimer>

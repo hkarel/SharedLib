@@ -23,7 +23,7 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *****************************************************************************/
 
-#include "version_number.h"
+#include "qt/version_number.h"
 
 VersionNumber::VersionNumber(quint8 major, quint8 minor, quint8 patch)
 {
