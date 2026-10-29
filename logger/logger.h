@@ -125,6 +125,8 @@ struct Message
     char prefix3[80]; // Уровень логирования, идентификатор потока (LWP),
                       // наименование файла, номер строки, имя модуля
 
+    int  prefix3Len = {-1}; // Длина текста в поле prefix3
+
     const char* file   = {0};
     const char* func   = {0};
     int         line   = {0};
@@ -513,6 +515,7 @@ protected:
     void flushImpl(const MessageList&) override;
 
     ostream* _out;
+    int _prefix3Max = {-1};
     bool _shortMessages = {false};
 };
 
@@ -550,6 +553,7 @@ protected:
 private:
     string _filePath;
     bool   _isContinue = {true};
+    int    _prefix3Max = {-1};
 };
 
 /**

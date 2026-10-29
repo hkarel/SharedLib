@@ -44,6 +44,8 @@ namespace alog {
 
 using namespace std;
 
+const char* spacePlaceholder = " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+
 void loggerPanic(const string& saverName, const string& error)
 {
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
@@ -236,12 +238,14 @@ void prefixFormatter3(Message& message)
     #define STUB_NORMAL  \
         {*begin++ = ']'; \
          *begin++ = ' '; \
-         *begin   = '\0';}
+         *begin   = '\0';\
+         message.prefix3Len = int(begin - buff);}
 
     #define STUB_EDGE      \
         {*(end - 3) = ']'; \
          *(end - 2) = ' '; \
-         *(end - 1) = '\0';}
+         *(end - 1) = '\0';\
+         message.prefix3Len = int(sizeof(buff));}
 
     if (message.file)
     {
@@ -849,7 +853,27 @@ void SaverStdOut::flushImpl(const MessageList& messages)
             (*_out) << m->prefix1;
             if (level() == Level::Debug2)
                 (*_out) << m->prefix2;
-            (*_out) << m->prefix3;
+
+            if (m->prefix3Len >= _prefix3Max)
+            {
+                (*_out) << m->prefix3;
+                _prefix3Max = m->prefix3Len;
+            }
+            else
+            {
+                _out->write(m->prefix3, m->prefix3Len - 2);
+                int diffLen = _prefix3Max - m->prefix3Len;
+                if (diffLen >= 3)
+                {
+                    _out->write(spacePlaceholder, diffLen - 1);
+                    _out->write(" ] ", 3);
+                }
+                else
+                {
+                    _out->write("     ", diffLen);
+                    _out->write("] ", 2);
+                }
+            }
         }
 
         string str;
@@ -959,7 +983,27 @@ void SaverFile::flushImpl(const MessageList& messages)
         fputs(m->prefix1, f);
         if (level() == Level::Debug2)
             fputs(m->prefix2, f);
-        fputs(m->prefix3, f);
+
+        if (m->prefix3Len >= _prefix3Max)
+        {
+            fputs(m->prefix3, f);
+            _prefix3Max = m->prefix3Len;
+        }
+        else
+        {
+            fwrite(m->prefix3, m->prefix3Len - 2, 1, f);
+            int diffLen = _prefix3Max - m->prefix3Len;
+            if (diffLen >= 3)
+            {
+                fwrite(spacePlaceholder, diffLen - 1, 1, f);
+                fwrite(" ] ", 3, 1, f);
+            }
+            else
+            {
+                fwrite("     ", diffLen, 1, f);
+                fwrite("] ", 2, 1, f);
+            }
+        }
 
         string str;
         string* pstr = &m->str;
