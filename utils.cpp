@@ -98,7 +98,7 @@ void savePidFile(const string& fileName)
             fclose(pf);
         }
         else
-            throw logic_error("Can not open pid-file " + fileName + " for writing");
+            throw logic_error("Cannot open pid-file " + fileName + " for writing");
     }
 }
 

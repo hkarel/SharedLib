@@ -58,7 +58,7 @@ Filter::Ptr createFilter(const YAML::Node& yfilter)
     {
         if (yfilter[field].IsNull())
             throw std::logic_error(
-                "For 'filter' node a field '" + field + "' can not be null");
+                "For 'filter' node a field '" + field + "' cannot be null");
 
         if (yfilter[field].Type() != type)
             throw std::logic_error(
@@ -73,7 +73,7 @@ Filter::Ptr createFilter(const YAML::Node& yfilter)
         name = yfilter["name"].as<string>();
     }
     if (name.empty())
-        throw std::logic_error("In a filter-node a field 'name' can not be empty");
+        throw std::logic_error("In a filter-node a field 'name' cannot be empty");
 
     string type;
     if (yfilter["type"].IsDefined())
@@ -250,7 +250,7 @@ Saver::Ptr createSaver(const YAML::Node& ysaver, const Filter::List& filters,
     {
         if (ysaver[field].IsNull())
             throw std::logic_error(
-                "For 'saver' node a field '" + field + "' can not be null");
+                "For 'saver' node a field '" + field + "' cannot be null");
 
         if (ysaver[field].Type() != type)
             throw std::logic_error(
@@ -265,7 +265,7 @@ Saver::Ptr createSaver(const YAML::Node& ysaver, const Filter::List& filters,
         name = ysaver["name"].as<string>();
     }
     if (name.empty())
-        throw std::logic_error("In a saver-node a field 'name' can not be empty");
+        throw std::logic_error("In a saver-node a field 'name' cannot be empty");
 
     int active = -1;
     if (ysaver["active"].IsDefined())
@@ -304,7 +304,7 @@ Saver::Ptr createSaver(const YAML::Node& ysaver, const Filter::List& filters,
             if (c == '\\') c = '/';
     }
     if (file.empty())
-        throw std::logic_error("In a saver-node a field 'file_win' can not be empty");
+        throw std::logic_error("In a saver-node a field 'file_win' cannot be empty");
 #else
     if (ysaver["file"].IsDefined())
     {
@@ -312,7 +312,7 @@ Saver::Ptr createSaver(const YAML::Node& ysaver, const Filter::List& filters,
         file = ysaver["file"].as<string>();
     }
     if (file.empty())
-        throw std::logic_error("In a saver-node a field 'file' can not be empty");
+        throw std::logic_error("In a saver-node a field 'file' cannot be empty");
 #endif
 
     if (file[0] == '~')
