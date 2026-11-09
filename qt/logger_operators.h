@@ -31,7 +31,6 @@
 
 #include "logger/logger.h"
 #include "logger/format.h"
-#include "qt/identity.h"
 #include "qt/quuidex.h"
 #include <QtCore>
 #ifdef QT_NETWORK_LIB
@@ -52,7 +51,6 @@ Line& operator<< (Line&, const QHostAddress&);
 Line& operator<< (Line&, const QHostAddress::SpecialAddress);
 #endif
 Line& operator<< (Line&, const QVariant&);
-Line& operator<< (Line&, const Identity&);
 
 template<int N>
 Line& operator<< (Line& line, const QUuidT<N>& u)

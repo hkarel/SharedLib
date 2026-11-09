@@ -27,7 +27,12 @@
 #pragma once
 
 #include "config/yaml_config.h"
+#include "logger/logger.h"
 #include "qt/identity.h"
 
 bool loadIdentity(const YamlConfig* conf, const YAML::Node& baseNode,
                   const std::string& nodeName, Identity& identity);
+
+namespace alog {
+Line& operator<< (Line&, const Identity&);
+} // namespace alog

@@ -24,9 +24,10 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *****************************************************************************/
 
+#include "qt/network/interfaces.h"
+
 #include "logger/logger.h"
 #include "qt/logger_operators.h"
-#include "qt/network/interfaces.h"
 
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>

@@ -282,11 +282,4 @@ Line& operator<< (Line& line, const QVariant& v)
 
 #pragma GCC diagnostic pop
 
-Line& operator<< (Line& line, const Identity& identity)
-{
-    if (line.toLogger())
-        line << identity.toString();
-    return line;
-}
-
 } // namespace alog

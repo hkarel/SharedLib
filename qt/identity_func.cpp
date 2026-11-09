@@ -25,6 +25,7 @@
 *****************************************************************************/
 
 #include "qt/identity_func.h"
+#include "qt/logger_operators.h"
 
 bool loadIdentity(const YamlConfig* conf, const YAML::Node& baseNode,
                   const std::string& nodeName, Identity& identity)
@@ -44,3 +45,12 @@ bool loadIdentity(const YamlConfig* conf, const YAML::Node& baseNode,
     conf->getValue(node, "name",  identity.name , false);
     return true;
 }
+
+namespace alog {
+Line& operator<< (Line& line, const Identity& identity)
+{
+    if (line.toLogger())
+        line << identity.toString();
+    return line;
+}
+} // namespace alog
