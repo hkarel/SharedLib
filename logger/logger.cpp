@@ -773,6 +773,16 @@ void Saver::addFilter(Filter::Ptr filter)
     _filters.add(filter.get());
 }
 
+bool Saver::filtersActive() const
+{
+    return _filtersActive.load(memory_order_relaxed);
+}
+
+void Saver::setFiltersActive(bool val)
+{
+    _filtersActive.store(val, memory_order_relaxed);
+}
+
 void Saver::removeFilter(const string& name)
 {
     SpinLocker locker {_filtersLock}; (void) locker;
@@ -792,7 +802,7 @@ bool Saver::skipMessage(const Message& m, const Filter::List& filters)
     if (filters.empty())
         return false;
 
-    if (!_filtersActive)
+    if (!_filtersActive.load(memory_order_relaxed))
         return false;
 
     for (Filter* filter : filters)
@@ -1079,14 +1089,13 @@ Line::Line(Logger*     logger,
 
 Line::~Line()
 {
-    if (impl.empty())
+    if (impl.empty()
+        || impl->logger->threadStop()
+        || !impl->logger->_on.load(memory_order_relaxed)
+        || impl->level > impl->logger->level())
+    {
         return;
-
-    if (impl->logger->threadStop() || !impl->logger->_on)
-        return;
-
-    if (impl->level > impl->logger->level())
-        return;
+    }
 
     try
     {
@@ -1176,7 +1185,8 @@ void Logger::run()
             messagesIsEmpty = _messages.empty();
         }
 
-        if (!threadStop() && messagesIsEmpty && (_flushLoop == 0))
+        if (!threadStop() && messagesIsEmpty
+            && (_flushLoop.load(memory_order_relaxed) == 0))
         {
             static chrono::milliseconds sleepThread {20};
             this_thread::sleep_for(sleepThread);
@@ -1189,7 +1199,7 @@ void Logger::run()
         }
         if (!threadStop() && messages.empty() && messagesBuff.empty())
         {
-            _flushLoop = 0;
+            _flushLoop.store(0, memory_order_relaxed);
             continue;
         }
 
@@ -1204,7 +1214,7 @@ void Logger::run()
                 // поэтому нет необходимости присваивать последний нуль
                 // prefix1Buff[sizeof(prefix1Buff) - 1] = '\0';
 
-                Level level = this->level(); // volatile оптимизация
+                Level level = this->level();
                 for (int i = min; i < max; ++i)
                 {
                     prefixFormatter1(messages[i], lastTime, prefix1Buff);
@@ -1255,8 +1265,10 @@ void Logger::run()
 
         } //if (!messages.empty())
 
+        int flushLoop = _flushLoop.load(memory_order_relaxed);
+
         if (loopBreak
-            || _flushLoop > 0
+            || flushLoop > 0
             || flushTimer.elapsed() > _flushTime
             || messagesBuff.count() > _flushSize)
         {
@@ -1267,7 +1279,7 @@ void Logger::run()
                 for (Saver* saver : savers)
                     saverFlush(messagesBuff, saver);
             }
-            if (_flushLoop > 0)
+            if (flushLoop > 0)
                 --_flushLoop;
 
             messagesBuff.clear();
@@ -1287,7 +1299,7 @@ void Logger::flush(int loop)
 
 void Logger::waitingFlush()
 {
-    while (_flushLoop && !threadStop())
+    while (_flushLoop.load(memory_order_relaxed) && !threadStop())
     {
         static chrono::milliseconds sleepThread {10};
         this_thread::sleep_for(sleepThread);

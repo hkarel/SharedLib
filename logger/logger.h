@@ -448,8 +448,8 @@ public:
     void addFilter(Filter::Ptr);
 
     // Признак активности системы фильтрации
-    bool filtersActive() const {return _filtersActive;}
-    void setFiltersActive(bool val) {_filtersActive.store(val);}
+    bool filtersActive() const;
+    void setFiltersActive(bool val);
 
     // Удаляет фильтр
     void removeFilter(const string& name);
@@ -490,8 +490,8 @@ private:
     int    _maxLineSize = {5000};
     bool   _configured = {false};
 
-    Filter::List  _filters;
-    atomic_bool _filtersActive = {true};
+    Filter::List _filters;
+    atomic_bool  _filtersActive = {true};
     mutable atomic_flag _filtersLock = ATOMIC_FLAG_INIT;
 
     friend class SaverStdOut;
@@ -644,10 +644,10 @@ public:
     void removeSaverStdErr();
 
     // Включает вывод информации в логи (по умолчанию включено)
-    void on() noexcept {_on = true;}
+    void on() noexcept {_on.store(true, memory_order_relaxed);}
 
     // Позволяет временно отключить вывод данных в логи
-    void off() noexcept {_on = false;}
+    void off() noexcept {_on.store(false, memory_order_relaxed);}
 
     // Определяет интервал записи сообщений для сейверов.
     // Измеряется в миллисекундах, значение по умолчанию 300 ms
@@ -680,7 +680,7 @@ public:
 
     // Возвращает максимальный уровень логирования для сейверов зарегистриро-
     // ванных на данный момент в логгере
-    Level level() const {return _level;}
+    Level level() const {return _level.load(memory_order_relaxed);}
 
     void redefineLevel();
 
@@ -703,12 +703,12 @@ private:
     Saver::List _savers;    // Список CUSTOM-сейверов
     mutable atomic_flag  _saversLock = ATOMIC_FLAG_INIT;
 
-    volatile Level _level = {None};
+    atomic_bool _on = {true};
+    atomic<Level> _level = {None};
 
     int _flushTime = {300};
     int _flushSize = {1000};
-    volatile int _flushLoop = {0};
-    volatile bool _on = {true};
+    atomic_int _flushLoop = {0};
 
     friend struct Line;
     template<typename T, int> friend T& safe::singleton();
