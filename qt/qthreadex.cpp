@@ -40,7 +40,7 @@ QThreadEx::QThreadEx(QObject* parent) : QThread(parent)
 
 bool QThreadEx::threadStop() const noexcept
 {
-    return _threadStop;
+    return _threadStop.load(std::memory_order_relaxed);
 }
 
 void QThreadEx::start(Priority priority)
@@ -58,7 +58,7 @@ void QThreadEx::startImpl(Priority priority)
     QMutexLocker locker {&_startStopLock}; (void) locker;
 
     //while (_waitThreadStart)
-    //    usleep(100);
+    //    QThread::usleep(100);
 
     if (isRunning())
         return;
@@ -76,9 +76,9 @@ void QThreadEx::startImpl(Priority priority)
         _waitThreadStart = false;
 
     // Ждем пока поток запустится
-    while (_waitThreadStart)
+    while (_waitThreadStart.load(std::memory_order_relaxed))
     {
-        usleep(100);
+        QThread::usleep(100);
         if (isFinished())
             _waitThreadStart = false;
     }
@@ -88,8 +88,8 @@ bool QThreadEx::stopImpl(unsigned long timeout)
 {
     QMutexLocker locker {&_startStopLock}; (void) locker;
 
-    while (_waitThreadStart)
-        usleep(100);
+    while (_waitThreadStart.load(std::memory_order_relaxed))
+        QThread::usleep(100);
 
     _threadStop = true;
     threadStopEstablished();

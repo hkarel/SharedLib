@@ -82,7 +82,7 @@ protected:
 
 private:
     Q_OBJECT
-    volatile bool _threadStop = {true};
+    std::atomic_bool _threadStop = {true};
     std::atomic_bool _waitThreadStart = {false};
 
     // Используется для исключения одновременного вызова функций start()/stop()
