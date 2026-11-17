@@ -85,8 +85,8 @@ private:
     // типа 'thread'.
     std::thread _thread;
 
-    volatile bool _threadRun  = {false};
-    volatile bool _threadStop = {true};
+    std::atomic_bool _threadRun  = {false};
+    std::atomic_bool _threadStop = {true};
 
     // Вспомогательная переменная используется для предотвращения вызова функ-
     // ции stop() сразу после вызова функции start(). В этой ситуации вызов
@@ -99,7 +99,18 @@ private:
 
     // Используется для исключения одновременного вызова функций start()/stop()
     std::mutex _startStopLock;
-
 };
+
+//------------------------------ Implementation ------------------------------
+
+inline bool ThreadBase::threadStop() const noexcept
+{
+    return _threadStop.load(std::memory_order_relaxed);
+}
+
+inline bool ThreadBase::threadRun() const noexcept
+{
+    return _threadRun.load(std::memory_order_relaxed);
+}
 
 } //namespace trd

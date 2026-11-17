@@ -26,34 +26,35 @@
 
 #include "thread_base.h"
 #include "break_point.h"
+#include <unistd.h>
 
 namespace trd {
 
-//ThreadBase::ThreadBase()
-//{
-//    _threadRun = false;
-//    _threadStop = true;
-//    _waitThreadStart = false;
-//    //_waitThreadStop = true;
-//}
+// ThreadBase::ThreadBase()
+// {
+//     _threadRun = false;
+//     _threadStop = true;
+//     _waitThreadStart = false;
+//     //_waitThreadStop = true;
+// }
 
-bool ThreadBase::threadStop() const noexcept
-{
-    return _threadStop;
-}
+// bool ThreadBase::threadStop() const noexcept
+// {
+//     return _threadStop.load(std::memory_order_relaxed);
+// }
 
-bool ThreadBase::threadRun() const noexcept
-{
-//    thread::native_handle_type thr = nativeHandle();
-//    if (thr != 0)
-//    {
-//        int res = pthread_kill(thr, 0);
-//        return !(ESRCH == res);
-//    }
-//    return false;
+// bool ThreadBase::threadRun() const noexcept
+// {
+// //    thread::native_handle_type thr = nativeHandle();
+// //    if (thr != 0)
+// //    {
+// //        int res = pthread_kill(thr, 0);
+// //        return !(ESRCH == res);
+// //    }
+// //    return false;
 
-    return _threadRun;
-}
+//     return _threadRun.load(std::memory_order_relaxed);
+// }
 
 std::thread::native_handle_type ThreadBase::nativeHandle() noexcept
 {
@@ -76,7 +77,8 @@ void ThreadBase::startImpl()
     // перезатирание переменной _thread при повторных вызовах метода start().
     // Чтобы этого избежать ждем пока поток начнет работать и условие
     // _thread.joinable() == TRUE будет выполнятся.
-    while (_waitThreadStart) {}
+    while (_waitThreadStart.load(std::memory_order_relaxed))
+        usleep(100);
 
     if (threadRun())
         return;
@@ -103,7 +105,8 @@ void ThreadBase::stopImpl(bool /*wait*/)
 
     // Ждем пока поток начнет выполняться, это нужно чтобы не проскочить
     // мимо вызова _thread.join(), см. ниже.
-    while (_waitThreadStart) {}
+    while (_waitThreadStart.load(std::memory_order_relaxed))
+        usleep(100);
 
     //_waitThreadStop = wait;
     _threadStop = true;
