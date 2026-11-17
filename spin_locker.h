@@ -28,6 +28,12 @@
 
 #include <atomic>
 
+#ifdef SPIN_LOCKER_REV2
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#include <immintrin.h>
+#endif
+#endif // SPIN_LOCKER_REV2
+
 /**
   Простейший механизм для автоматической блокировки/разблокировки
   атомарного локкера
@@ -41,7 +47,17 @@ struct SpinLocker
         unlock();
     }
     void lock() {
+#ifdef SPIN_LOCKER_REV2
+        while (locker.test_and_set(std::memory_order_acquire)) {
+        #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+            _mm_pause();
+        #elif defined(__aarch64__) || defined(_M_ARM64)
+            asm volatile("yield" ::: "memory");
+        #endif
+        }
+#else
         while (locker.test_and_set(std::memory_order_acquire)) {}
+#endif // SPIN_LOCKER_REV2
     }
     void unlock() {
         locker.clear(std::memory_order_release);
