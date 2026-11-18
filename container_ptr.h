@@ -62,8 +62,18 @@ struct counter_ptr_t
 {
     std::atomic<uint32_t> count;
 
-    void add_ref() {++count;}
-    uint32_t release() {return --count;}
+    //void add_ref() {++count;}
+    //uint32_t release() {return --count;}
+
+    void add_ref() {
+        count.fetch_add(1, std::memory_order_relaxed);
+    }
+    uint32_t release() {
+        uint32_t pre_count = count.fetch_sub(1, std::memory_order_release);
+        if (pre_count == 1)
+            std::atomic_thread_fence(std::memory_order_acquire);
+        return pre_count - 1;
+    }
 
     // Флаг dummy определяет фиктивный счетчик ссылок. Если dummy равен true,
     // то при уничтожении counter_ptr - объект  владения  разрушен  не будет,
