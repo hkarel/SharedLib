@@ -63,10 +63,22 @@ public:
 
 #pragma GCC diagnostic pop
 
-    void add_ref() const {++_clife_count;}
-    void release() const {if (--_clife_count == 0) delete this;}
+    //void add_ref() const {++_clife_count;}
+    //void release() const {if (--_clife_count == 0) delete this;}
 
-    uint32_t clife_count() const {return _clife_count;}
+    void add_ref() const {
+        _clife_count.fetch_add(1, std::memory_order_relaxed);
+    }
+    void release() const {
+        if (_clife_count.fetch_sub(1, std::memory_order_release) == 1) {
+            std::atomic_thread_fence(std::memory_order_acquire);
+            delete this;
+        }
+    }
+
+    uint32_t clife_count() const {
+        return _clife_count.load(std::memory_order_relaxed);
+    }
 
 private:
     mutable std::atomic<uint32_t> _clife_count = {0};
