@@ -89,6 +89,11 @@ private:
     QMutex _startStopLock;
 };
 
+inline bool QThreadEx::threadStop() const noexcept
+{
+    return _threadStop.load(std::memory_order_relaxed);
+}
+
 #define CHECK_QTHREADEX_STOP \
     if (threadStop()) { \
         log_debug_m << "Thread stop command received"; \

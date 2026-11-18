@@ -38,11 +38,6 @@ QThreadEx::QThreadEx(QObject* parent) : QThread(parent)
     chk_connect_d(this, &QThread::finished, this, &QThreadEx::onFinished)
 }
 
-bool QThreadEx::threadStop() const noexcept
-{
-    return _threadStop.load(std::memory_order_relaxed);
-}
-
 void QThreadEx::start(Priority priority)
 {
     startImpl(priority);
