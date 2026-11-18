@@ -240,11 +240,11 @@ void Observer::stop()
 
 void Observer::addFile(QString filePath)
 {
-    QMutexLocker locker {&_filesLock}; (void) locker;
-
     filePath = filePath.trimmed();
     if (filePath.isEmpty())
         return;
+
+    QMutexLocker locker {&_filesLock}; (void) locker;
 
     bool found = false;
     for (const auto& p : _files)
