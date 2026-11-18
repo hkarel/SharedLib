@@ -27,7 +27,7 @@
 
 #include "defmac.h"
 #include "break_point.h"
-#include <QElapsedTimer>
+#include "steady_timer.h"
 
 QThreadEx::QThreadEx() : QThreadEx(nullptr)
 {}
@@ -103,10 +103,13 @@ bool QThreadEx::stopImpl(unsigned long timeout)
 void QThreadEx::sleep(unsigned long timeout) const
 {
     timeout *= 1000;
-    QElapsedTimer timer;
-    timer.start();
-    while (!timer.hasExpired(timeout) && !threadStop())
+    steady_timer timer;
+    while (!threadStop())
+    {
         QThread::msleep(200);
+        if (timer.elapsed() >= int64_t(timeout))
+            break;
+    }
 }
 
 void QThreadEx::onStarted()
