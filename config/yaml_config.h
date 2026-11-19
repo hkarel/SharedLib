@@ -323,6 +323,10 @@ private:
                               typename detail::is_yaml_type<T>::type = 0);
     template<typename T>
     static bool getValueProxy(const Config* config, YAML::Node& node,
+                              const string& name, atomic<T>& value, bool logWarn,
+                              typename detail::is_yaml_type<T>::type = 0);
+    template<typename T>
+    static bool getValueProxy(const Config* config, YAML::Node& node,
                               const string& name, T& value, bool logWarn,
                               typename detail::not_yaml_type<T>::type = 0);
 
@@ -377,6 +381,13 @@ private:
                               typename detail::is_yaml_type<T>::type = 0)
     {
         return config->setValueBase(node, name, value);
+    }
+    template<typename T>
+    static bool setValueProxy(Config* config, YAML::Node& node,
+                              const string& name, const atomic<T>& value,
+                              typename detail::is_yaml_type<T>::type = 0)
+    {
+        return config->setValueBase(node, name, value.load());
     }
     template<typename T>
     static bool setValueProxy(Config* config, YAML::Node& node,
@@ -694,6 +705,20 @@ bool Config::getValueProxy(const Config* config, YAML::Node& node,
         return true;
     }
     return config->getValueBase(node, name, value, logWarn);
+}
+
+template<typename T>
+bool Config::getValueProxy(const Config* config, YAML::Node& node,
+                           const string& name, atomic<T>& value, bool logWarn,
+                           typename detail::is_yaml_type<T>::type)
+{
+    typename atomic<T>::value_type v;
+    if (getValueProxy(config, node, name, v, logWarn))
+    {
+        value.store(v);
+        return true;
+    }
+    return false;
 }
 
 template<typename T>
