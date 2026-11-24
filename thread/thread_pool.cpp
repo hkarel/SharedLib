@@ -43,13 +43,14 @@ void ThreadPool::stop()
 {
     _stopped = true;
     for (Item* it : _threads)
-    {
-        lock_guard<mutex> locker {it->_sleepMutex}; (void) locker;
-        if (it->_sleeps)
+        if (it->_sleeps.load(memory_order_relaxed))
+        {
+            lock_guard<mutex> locker {it->_sleepMutex}; (void) locker;
             it->_sleepCond.notify_all();
-    }
+        }
+
     for (Item* item : _threads)
-        while (!item->_finished)
+        while (!item->_finished.load(memory_order_relaxed))
         {
             static chrono::milliseconds timeout {5};
             this_thread::sleep_for(timeout);
@@ -62,49 +63,49 @@ void ThreadPool::stop()
 
 void ThreadPool::setTimeout(int timeout)
 {
-    if (_stopped)
+    if (_stopped.load(memory_order_relaxed))
         _timeout = timeout;
 }
 
 ThreadPool::Item* ThreadPool::run(Func runFunc)
 {
     if (!runFunc)
-        return 0;
+        return nullptr;
 
-    // Если пул остановлен, то выполняем функции в исходном потоке
-    if (_stopped)
+    // Если пул остановлен - выполняем функцию в текущем потоке
+    if (_stopped.load(memory_order_relaxed))
     {
         runFunc();
-        return 0;
+        return nullptr;
     }
 
     lock_guard<mutex> locker {_threadsLock}; (void) locker;
 
-    Item* item = 0;
+    Item* item = nullptr;
     for (Item* it : _threads)
     {
-        if (it->_working)
+        if (it->_working.load(memory_order_relaxed))
             continue;
 
-        if (it->_finished)
+        if (it->_finished.load(memory_order_relaxed))
         {
             item = it;
             break;
         }
 
-        { //Block for lock_guard
-            lock_guard<mutex> locker {it->_sleepMutex}; (void) locker;
-            if (it->_sleeps)
-            {
-                it->_func = std::move(runFunc);
-                it->_working = true;
+        if (it->_sleeps.load(memory_order_relaxed))
+        {
+            it->_func = std::move(runFunc);
+            it->_working = true;
+            { //Block for lock_guard
+                lock_guard<mutex> locker {it->_sleepMutex}; (void) locker;
                 it->_sleepCond.notify_all();
-                return it;
             }
+            return it;
         }
     }
 
-    if (item == 0)
+    if (item == nullptr)
     {
         item = new Item;
         _threads.push_back(item);
@@ -124,7 +125,7 @@ void ThreadPool::Item::run()
 {
     while (true)
     {
-        if (_pool->_stopped)
+        if (_pool->_stopped.load(memory_order_relaxed))
             break;
 
         if (_func)
@@ -145,24 +146,24 @@ void ThreadPool::Item::run()
         }
         //asm volatile ("" ::: "memory");
 
-        if (_pool->_stopped)
+        if (_pool->_stopped.load(memory_order_relaxed))
             break;
 
-        { //Block for unique_lock
+        _sleeps.store(true, memory_order_relaxed);
+        cv_status stat;
+        do {
+            if (_working.load(memory_order_relaxed)
+                || _pool->_stopped.load(memory_order_relaxed))
+                break;
+
             unique_lock<mutex> locker {_sleepMutex};
-            _sleeps = true;
-            cv_status stat;
-            do {
-                if (_working || _pool->_stopped)
-                    break;
+            stat = _sleepCond.wait_for(locker, _timeout);
 
-                //static chrono::seconds timeout {15};
-                stat = _sleepCond.wait_for(locker, _timeout);
+        } while (stat != cv_status::timeout);
+        _sleeps.store(false, memory_order_relaxed);
 
-            } while (stat != cv_status::timeout);
-            _sleeps = false;
-        }
-        if (!_working || _pool->_stopped)
+        if (!_working.load(memory_order_relaxed)
+            || _pool->_stopped.load(memory_order_relaxed))
             break;
     }
     _finished = true;

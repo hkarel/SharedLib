@@ -81,9 +81,9 @@ public:
         ThreadPool* _pool;
         chrono::seconds _timeout;
 
-        atomic_bool   _working  = {true};  // Признак, что поток выполняет работу
-        volatile bool _sleeps   = {false}; // Поток находится в состоянии ожидания
-        volatile bool _finished = {false}; // Поток уже закончил работу
+        atomic_bool _working  = {true};  // Признак работающего потока
+        atomic_bool _sleeps   = {false}; // Признак ожидания новой работы
+        atomic_bool _finished = {false}; // Признак окончания работы потока
 
         mutex _workMutex;
         condition_variable _workCond;
@@ -102,7 +102,7 @@ public:
     void stop();
 
     // Возвращает TRUE, когда пул потоков остановлен
-    bool stopped() const {return _stopped;}
+    bool stopped() const {return _stopped.load(memory_order_relaxed);}
 
     // Интервал времени (в секундах) по истечении которого неиспользуемый поток
     // будет уничтожен. Установить новый интервал можно только когда пул потоков
@@ -119,7 +119,9 @@ public:
     template<typename FuncType, typename... Args>
     ThreadPool::Item* run(FuncType func, Args... args)
     {
-        if (_stopped) return 0;
+        // Если пул остановлен - выполняем функцию в текущем потоке
+        // if (_stopped.load(memory_order_relaxed))
+        //     return nullptr;
         Func runFunc = std::bind(func, std::forward<Args>(args)...);
         return run(runFunc);
     }
